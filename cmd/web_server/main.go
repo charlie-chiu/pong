@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type information struct {
@@ -33,15 +35,17 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/json/", http.HandlerFunc(jsonHandler))
-	mux.Handle("/html/", http.HandlerFunc(htmlHandler))
-	mux.Handle("/", http.HandlerFunc(textHandler))
+	router := mux.NewRouter()
+
+	router.Handle("/json/", http.HandlerFunc(jsonHandler))
+	router.Handle("/html/", http.HandlerFunc(htmlHandler))
+	router.Handle("/", http.HandlerFunc(textHandler))
+	router.Handle("/redirect", http.RedirectHandler("http://www.example.com", http.StatusFound))
 
 	svr := http.Server{
 		Addr: ":" + port,
 	}
-	svr.Handler = mux
+	svr.Handler = router
 
 	log.Fatal(svr.ListenAndServe())
 }
