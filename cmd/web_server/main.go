@@ -31,6 +31,7 @@ func newInformation() information {
 func main() {
 	// usage: PORT=8899 go run cmd/web_server/main.go
 	port := os.Getenv("PORT")
+	log.Printf("Trying get port from environment...\n")
 	if port == "" {
 		port = "80"
 		log.Printf("Defaulting to port %s", port)
@@ -38,11 +39,16 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.Handle("/json/", http.HandlerFunc(jsonHandler))
-	router.Handle("/html/", http.HandlerFunc(htmlHandler))
+	router.Handle("/exectime/{duration}", http.HandlerFunc(execTimeHandler))
+
 	router.Handle("/", http.HandlerFunc(textHandler))
-	router.Handle("/redirect", http.RedirectHandler("http://www.example.com", http.StatusFound))
+
 	router.Handle("/status/{code}", http.HandlerFunc(statusHandler))
+
+	router.Handle("/content/json", http.HandlerFunc(jsonHandler))
+	router.Handle("/content/html", http.HandlerFunc(htmlHandler))
+
+	router.Handle("/redirect", http.RedirectHandler("https://www.example.com", http.StatusFound))
 
 	svr := http.Server{
 		Addr: ":" + port,
@@ -70,6 +76,27 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(code)
 	_, _ = fmt.Fprint(w, fmt.Sprintf("%d %s", code, statusText))
+}
+
+func execTimeHandler(w http.ResponseWriter, r *http.Request) {
+	const MaxDuration = 120 * time.Second
+
+	vars := mux.Vars(r)
+	duration, err := time.ParseDuration(vars["duration"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprint(w, fmt.Sprint("invalid duration"))
+		return
+	}
+
+	if duration > MaxDuration {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprint(w, fmt.Sprintf("execution time must under %0.0f second", MaxDuration.Seconds()))
+		return
+	}
+
+	time.Sleep(duration)
+	_, _ = fmt.Fprint(w, fmt.Sprintf("got duration %s", duration.String()))
 }
 
 func textHandler(w http.ResponseWriter, r *http.Request) {
