@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -41,6 +42,7 @@ func main() {
 	router.Handle("/html/", http.HandlerFunc(htmlHandler))
 	router.Handle("/", http.HandlerFunc(textHandler))
 	router.Handle("/redirect", http.RedirectHandler("http://www.example.com", http.StatusFound))
+	router.Handle("/status/{code}", http.HandlerFunc(statusHandler))
 
 	svr := http.Server{
 		Addr: ":" + port,
@@ -48,6 +50,26 @@ func main() {
 	svr.Handler = router
 
 	log.Fatal(svr.ListenAndServe())
+}
+
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	code, err := strconv.Atoi(vars["code"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprint(w, fmt.Sprint("invalid status code"))
+		return
+	}
+
+	statusText := http.StatusText(code)
+	if statusText == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprint(w, fmt.Sprint("invalid status code"))
+		return
+	}
+
+	w.WriteHeader(code)
+	_, _ = fmt.Fprint(w, fmt.Sprintf("%d %s", code, statusText))
 }
 
 func textHandler(w http.ResponseWriter, r *http.Request) {
