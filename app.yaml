@@ -1,0 +1,3 @@
+runtime: go116
+
+main: ./cmd/web_server
