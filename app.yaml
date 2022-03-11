@@ -1,3 +1,4 @@
-runtime: go116
+runtime: go
+env: flex
 
 main: ./cmd/web_server
